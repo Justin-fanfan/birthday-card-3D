@@ -2,7 +2,7 @@
  * Birthday GuanDan rack - continuous stepped edition
  * OpenSCAD 2021.01 compatible.
  *
- * part = "assembly" | "rack" | "heartA" | "heartA_base" |
+ * part = "assembly" | "rack" | "heartA" | "heartA_preview" | "heartA_base" |
  *        "heartA_red" | "heartA_black" | "sliderA" | "sliderB" |
  *        "slot_test" | "slider_test"
  */
@@ -35,9 +35,9 @@ card_slot_w = 2.4;
 card_slot_depth = 10;
 card_lean = 12;
 
-display_slot_len = 62;
-display_slot_w = 3.8;
-display_slot_depth = 10;
+display_slot_len = 54;
+display_slot_w = 4.6;
+display_slot_depth = 11;
 display_lean = 8;
 display_y = 12;
 
@@ -69,13 +69,14 @@ slider_assembly_y = score_cavity_y + score_cavity_depth - 1.1;
 levels = ["2","3","4","5","6","7","8","9","10","J","Q","K","A"];
 
 // ---------- heart A ----------
-card_w = 60;
-card_h = 90;
-card_t = 3.2;
-card_r = 5;
-relief_h = 0.65;
+card_w = 52;
+card_h = 78;
+card_t = 4.0;
+card_r = 4.5;
+card_bevel = 0.65;
+relief_h = 0.7;
 border_w = 0.65;
-qr_size = 30;
+qr_size = 26;
 font_main = "Microsoft YaHei:style=Bold";
 font_latin = "Times New Roman:style=Bold";
 
@@ -255,34 +256,37 @@ module slider_standing_colored(x,z,color_value) {
 // ------------------------------------------------------------
 // Heart A card
 // ------------------------------------------------------------
+function heart_curve_point(a) = [
+    0.42 * 16 * sin(a) * sin(a) * sin(a),
+    0.42 * (13*cos(a) - 5*cos(2*a) - 2*cos(3*a) - cos(4*a))
+];
+
 module heart_2d(s=1) {
-    scale([s,s]) union() {
-        translate([-3.2,1.8]) circle(r=3.5);
-        translate([ 3.2,1.8]) circle(r=3.5);
-        polygon(points=[[-6.5,1.5],[6.5,1.5],[0,-7.0]]);
-    }
+    // One continuous curve avoids the visible circle/triangle seam.
+    scale([s,s])
+        polygon(points=[for (i=[0:95]) heart_curve_point(i*360/96)]);
 }
 
 module card_base() {
-    linear_extrude(height=card_t)
-        rounded_rect_2d(card_w,card_h,card_r);
+    // A thicker body with a light all-round bevel gives the card more weight.
+    soft_prism(card_w,card_h,card_t,card_r,card_bevel);
 }
 
 module card_red_relief() {
     z = card_t - 0.05;
     translate([0,0,z]) linear_extrude(height=relief_h)
         difference() {
-            translate([2.4,2.4]) rounded_rect_2d(card_w-4.8,card_h-4.8,3.2);
-            translate([3.1,3.1]) rounded_rect_2d(card_w-6.2,card_h-6.2,2.6);
+            translate([2.2,2.2]) rounded_rect_2d(card_w-4.4,card_h-4.4,3.0);
+            translate([2.85,2.85]) rounded_rect_2d(card_w-5.7,card_h-5.7,2.45);
         }
-    translate([7.5,80,z]) linear_extrude(height=relief_h)
-        text("A",size=8,font=font_latin,halign="center",valign="center");
-    translate([7.5,72.5,z]) linear_extrude(height=relief_h) heart_2d(0.52);
-    translate([card_w/2,61,z]) linear_extrude(height=relief_h) heart_2d(1.35);
-    translate([52.5,10,z]) rotate([0,0,180]) linear_extrude(height=relief_h)
+    translate([6.6,card_h-8.5,z]) linear_extrude(height=relief_h)
         text("A",size=7,font=font_latin,halign="center",valign="center");
-    translate([52.5,17,z]) rotate([0,0,180]) linear_extrude(height=relief_h)
-        heart_2d(0.42);
+    translate([6.6,card_h-15,z]) linear_extrude(height=relief_h) heart_2d(0.44);
+    translate([card_w/2,card_h*0.67,z]) linear_extrude(height=relief_h) heart_2d(1.18);
+    translate([card_w-6.6,8.5,z]) rotate([0,0,180]) linear_extrude(height=relief_h)
+        text("A",size=6.2,font=font_latin,halign="center",valign="center");
+    translate([card_w-6.6,14.5,z]) rotate([0,0,180]) linear_extrude(height=relief_h)
+        heart_2d(0.36);
 }
 
 module qr_2d(target_size=30) {
@@ -297,10 +301,10 @@ module qr_2d(target_size=30) {
 module card_black_relief() {
     z = card_t - 0.05;
     if (show_qr && qr_ready)
-        translate([card_w/2-qr_size/2,18,z])
+        translate([card_w/2-qr_size/2,15.2,z])
             linear_extrude(height=relief_h) qr_2d(qr_size);
-    translate([card_w/2,11,z]) linear_extrude(height=relief_h)
-        text("扫一扫 · 看手气",size=3.3,font=font_main,halign="center",valign="center");
+    translate([card_w/2,9,z]) linear_extrude(height=relief_h)
+        text("扫一扫 · 看手气",size=2.8,font=font_main,halign="center",valign="center");
 }
 
 module heart_card_all() {
@@ -311,13 +315,15 @@ module heart_card_all() {
     }
 }
 
+module heart_card_flat_colored() {
+    color("#f4ead7") card_base();
+    color("#b52b23") card_red_relief();
+    color("#181512") card_black_relief();
+}
+
 module heart_card_standing_colored() {
     translate([rack_w/2-card_w/2,display_y-0.8,front_h-7.2])
-        rotate([90-display_lean,0,0]) {
-            color("#f4ead7") card_base();
-            color("#b52b23") card_red_relief();
-            color("#181512") card_black_relief();
-        }
+        rotate([90-display_lean,0,0]) heart_card_flat_colored();
 }
 
 // ------------------------------------------------------------
@@ -360,6 +366,7 @@ module slider_test() {
 if (part=="assembly") assembly();
 else if (part=="rack") rack();
 else if (part=="heartA") heart_card_all();
+else if (part=="heartA_preview") heart_card_flat_colored();
 else if (part=="heartA_base") card_base();
 else if (part=="heartA_red") card_red_relief();
 else if (part=="heartA_black") card_black_relief();
