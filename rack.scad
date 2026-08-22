@@ -1,10 +1,10 @@
 /*
- * Birthday GuanDan rack - integrated parametric model
+ * Birthday GuanDan rack - continuous stepped edition
  * OpenSCAD 2021.01 compatible.
  *
  * part = "assembly" | "rack" | "heartA" | "heartA_base" |
- *        "heartA_red" | "heartA_black" | "dialA" | "dialB" |
- *        "slot_test"
+ *        "heartA_red" | "heartA_black" | "sliderA" | "sliderB" |
+ *        "slot_test" | "slider_test"
  */
 
 include <qr_data.scad>
@@ -12,23 +12,23 @@ include <qr_data.scad>
 $fn = 48;
 
 part = "assembly";
-show_preview_cards = true;
 show_score_labels = true;
 show_qr = true;
 
-// ---------- rack ----------
+// ---------- continuous rack ----------
 rack_w = 210;
-rack_d = 85;
+rack_d = 84;
 base_t = 5;
-front_d = 21;
-front_h = 35;
 corner_r = 4;
-edge_bevel = 1.0;
+edge_bevel = 0.9;
 
-tier_d = 16;
-tier1_y = 25; tier1_h = 35;
-tier2_y = 47; tier2_h = 43;
-tier3_y = 69; tier3_h = 51;
+front_d = 25;
+front_h = 33;
+
+// Overlapping rounded masses form one continuous, gap-free stepped body.
+tier1_y = 17; tier1_d = 31; tier1_h = 37; row1_y = 34;
+tier2_y = 39; tier2_d = 31; tier2_h = 45; row2_y = 56;
+tier3_y = 61; tier3_d = 23; tier3_h = 53; row3_y = 77;
 
 card_slot_len = 192;
 card_slot_w = 2.4;
@@ -41,15 +41,32 @@ display_slot_depth = 10;
 display_lean = 8;
 display_y = 12;
 
-// score knobs
-score_axle_d = 3.4;
-score_left_x = 48;
-score_right_x = rack_w - 48;
-score_z = 17.5;
-score_knob_d = 22;
-score_ring_r = 14.5;
-score_text_size = 2.6;
-score_label_size = 4.7;
+// ---------- simple captive score sliders ----------
+score_track_len = 64;
+score_track_z = 15.5;
+score_left_x = 5;
+score_right_x = rack_w - score_left_x - score_track_len;
+score_load_offset = 4.2;
+score_first_offset = 11;
+score_last_offset = 60;
+score_open_h = 3.4;
+score_cavity_h = 6.6;
+score_load_d = 7.4;
+score_open_depth = 2.8;
+score_cavity_y = 1.8;
+score_cavity_depth = 4.2;
+score_label_size = 4.5;
+score_text_size = 2.7;
+
+slider_flange_d = 6.0;
+slider_flange_t = 1.5;
+slider_neck_d = 3.0;
+slider_neck_h = 2.8;
+slider_knob_d = 8.2;
+slider_knob_h = 2.3;
+slider_assembly_y = score_cavity_y + score_cavity_depth - 1.1;
+
+levels = ["2","3","4","5","6","7","8","9","10","J","Q","K","A"];
 
 // ---------- heart A ----------
 card_w = 60;
@@ -62,10 +79,8 @@ qr_size = 30;
 font_main = "Microsoft YaHei:style=Bold";
 font_latin = "Times New Roman:style=Bold";
 
-levels = ["2","3","4","5","6","7","8","9","10","J","Q","K","A"];
-
 // ------------------------------------------------------------
-// 2D helpers
+// Shared 2D/3D helpers
 // ------------------------------------------------------------
 module rounded_rect_2d(w,d,r) {
     hull() {
@@ -77,7 +92,6 @@ module rounded_rect_2d(w,d,r) {
 }
 
 module soft_prism(w,d,h,r=3,b=0.8) {
-    // Four-section hull gives a light bevel and rounded footprint.
     hull() {
         translate([b,b,0]) linear_extrude(height=0.05)
             rounded_rect_2d(w-2*b,d-2*b,max(0.5,r-b));
@@ -90,16 +104,36 @@ module soft_prism(w,d,h,r=3,b=0.8) {
     }
 }
 
+// Extrude a YZ side profile along world X.
+module extrude_side_profile(width) {
+    multmatrix([
+        [0,0,1,0],
+        [1,0,0,0],
+        [0,1,0,0],
+        [0,0,0,1]
+    ]) linear_extrude(height=width) children();
+}
+
 // ------------------------------------------------------------
-// Rack body
+// Gap-free, continuous rack body
 // ------------------------------------------------------------
-module rack_solid() {
+module rack_side_profile_2d() {
     union() {
-        soft_prism(rack_w,rack_d,base_t,corner_r,edge_bevel);
-        soft_prism(rack_w,front_d,front_h,corner_r,edge_bevel);
-        translate([0,tier1_y,0]) soft_prism(rack_w,tier_d,tier1_h,3,0.8);
-        translate([0,tier2_y,0]) soft_prism(rack_w,tier_d,tier2_h,3,0.8);
-        translate([0,tier3_y,0]) soft_prism(rack_w,tier_d,tier3_h,3,0.8);
+        // A full base closes the shallow rounding at every step.
+        rounded_rect_2d(rack_d,base_t,1.8);
+        rounded_rect_2d(front_d,front_h,4.2);
+        translate([tier1_y,0]) rounded_rect_2d(tier1_d,tier1_h,4.2);
+        translate([tier2_y,0]) rounded_rect_2d(tier2_d,tier2_h,4.2);
+        translate([tier3_y,0]) rounded_rect_2d(tier3_d,tier3_h,4.2);
+    }
+}
+
+module rack_solid() {
+    // The envelope rounds the left/right footprint while the YZ profile
+    // provides the flowing, fully filled stepped silhouette.
+    intersection() {
+        extrude_side_profile(rack_w) rack_side_profile_2d();
+        soft_prism(rack_w,rack_d,tier3_h+2,corner_r,edge_bevel);
     }
 }
 
@@ -110,18 +144,40 @@ module slot_cutter(y,z_top,len,width,depth,lean) {
 }
 
 module card_slot_cutters() {
-    slot_cutter(tier1_y+tier_d/2,tier1_h,card_slot_len,card_slot_w,card_slot_depth,card_lean);
-    slot_cutter(tier2_y+tier_d/2,tier2_h,card_slot_len,card_slot_w,card_slot_depth,card_lean);
-    slot_cutter(tier3_y+tier_d/2,tier3_h,card_slot_len,card_slot_w,card_slot_depth,card_lean);
+    slot_cutter(row1_y,tier1_h,card_slot_len,card_slot_w,card_slot_depth,card_lean);
+    slot_cutter(row2_y,tier2_h,card_slot_len,card_slot_w,card_slot_depth,card_lean);
+    slot_cutter(row3_y,tier3_h,card_slot_len,card_slot_w,card_slot_depth,card_lean);
 }
 
 module display_slot_cutter() {
     slot_cutter(display_y,front_h,display_slot_len,display_slot_w,display_slot_depth,display_lean);
 }
 
-module axle_hole(x,z) {
-    translate([x,front_d+1,z])
-        rotate([90,0,0]) cylinder(h=front_d+2,d=score_axle_d);
+module y_cylinder(x,y,z,d,depth) {
+    translate([x,y+depth,z])
+        rotate([90,0,0]) cylinder(h=depth,d=d);
+}
+
+module horizontal_pill(x0,len,y,z,d,depth) {
+    hull() {
+        y_cylinder(x0+d/2,y,z,d,depth);
+        y_cylinder(x0+len-d/2,y,z,d,depth);
+    }
+}
+
+module score_track_cutter(x0,len=score_track_len,z=score_track_z) {
+    // Narrow visible opening plus a wider hidden cavity retains the slider.
+    horizontal_pill(x0,len,-0.2,z,score_open_h,score_open_depth+0.2);
+    horizontal_pill(x0,len,score_cavity_y,z,score_cavity_h,score_cavity_depth);
+
+    // The rear flange enters through this port, then moves into the track.
+    y_cylinder(x0+score_load_offset,-0.2,z,score_load_d,
+        score_cavity_y+score_cavity_depth+0.4);
+}
+
+module score_track_cutters() {
+    score_track_cutter(score_left_x);
+    score_track_cutter(score_right_x);
 }
 
 module rack_base_geometry() {
@@ -129,12 +185,13 @@ module rack_base_geometry() {
         rack_solid();
         card_slot_cutters();
         display_slot_cutter();
-        axle_hole(score_left_x,score_z);
-        axle_hole(score_right_x,score_z);
+        score_track_cutters();
     }
 }
 
-// Front-face embossed/engraved-like graphics. They extend only 0.55 mm.
+// ------------------------------------------------------------
+// Front-face score graphics
+// ------------------------------------------------------------
 module face_text(str,x,z,size=4.5,depth=0.55,font=font_main) {
     translate([x,0.25,z])
         rotate([90,0,0])
@@ -142,27 +199,27 @@ module face_text(str,x,z,size=4.5,depth=0.55,font=font_main) {
                 text(str,size=size,font=font,halign="center",valign="center");
 }
 
-module score_ring_labels(cx,cz) {
-    for (i=[0:12]) {
-        a = 90 - i*360/13;
-        x = cx + score_ring_r*cos(a);
-        z = cz + score_ring_r*sin(a);
-        // rotate text tangentially on the front face
-        translate([x,0.25,z])
-            rotate([90,0,0])
-                linear_extrude(height=0.5)
-                    text(levels[i],size=score_text_size,font=font_main,halign="center",valign="center");
-    }
+module face_tick(x,z,h=1.7,w=0.45,depth=0.5) {
+    translate([x,0.25,z])
+        rotate([90,0,0])
+            linear_extrude(height=depth)
+                square([w,h],center=true);
 }
 
-module group_label_A() { face_text("A组",21,27,score_label_size,0.55); }
-module group_label_B() { face_text("B组",rack_w-21,27,score_label_size,0.55); }
+function score_x(x0,i) =
+    x0 + score_first_offset + i*(score_last_offset-score_first_offset)/12;
+
+module score_scale(x0,label) {
+    face_text(label,x0+score_track_len/2,26.7,score_label_size);
+    for (i=[0:12]) face_tick(score_x(x0,i),9.6,(i==0 || i==12) ? 2.2 : 1.5);
+    face_text("2",score_x(x0,0),6.6,score_text_size);
+    face_text("A",score_x(x0,12),6.6,score_text_size,font=font_latin);
+}
+
 module score_face_details() {
     if (show_score_labels) {
-        group_label_A();
-        group_label_B();
-        score_ring_labels(score_left_x,score_z);
-        score_ring_labels(score_right_x,score_z);
+        score_scale(score_left_x,"A组");
+        score_scale(score_right_x,"B组");
     }
 }
 
@@ -174,46 +231,32 @@ module rack() {
 }
 
 // ------------------------------------------------------------
-// Score dial / knob
+// Captive slider: print flat on its rear flange, no support.
 // ------------------------------------------------------------
-module dial_body() {
-    difference() {
-        union() {
-            cylinder(h=3.2,d=score_knob_d,center=false);
-            for (a=[0:30:330])
-                rotate([0,0,a]) translate([score_knob_d/2,0,1.6])
-                    cube([1.2,2.2,3.2],center=true);
-        }
-        translate([0,0,-0.1]) cylinder(h=5,d=score_axle_d);
-    }
-}
-
-module dial_pointer(pointer_angle=0) {
-    rotate([0,0,pointer_angle]) translate([0,6.2,3.15])
-        linear_extrude(height=0.75)
-            polygon(points=[[-1.7,0],[1.7,0],[0,4.5]]);
-}
-
-module knurled_dial(pointer_angle=0) {
+module slider() {
     union() {
-        dial_body();
-        dial_pointer(pointer_angle);
+        cylinder(h=slider_flange_t,d=slider_flange_d);
+        translate([0,0,slider_flange_t-0.1])
+            cylinder(h=slider_neck_h+0.2,d=slider_neck_d);
+        hull() {
+            translate([0,0,slider_flange_t+slider_neck_h-0.05])
+                cylinder(h=0.1,d=slider_knob_d-0.8);
+            translate([0,0,slider_flange_t+slider_neck_h+slider_knob_h-0.1])
+                cylinder(h=0.1,d=slider_knob_d);
+        }
     }
 }
 
-module dial_standing_colored(cx,cz,pointer_angle=0) {
-    translate([cx,-3.0,cz]) rotate([90,0,0]) {
-        color("#efe2c9") dial_body();
-        color("#332b25") dial_pointer(pointer_angle);
-    }
+module slider_standing_colored(x,z,color_value) {
+    translate([x,slider_assembly_y,z]) rotate([90,0,0])
+        color(color_value) slider();
 }
 
 // ------------------------------------------------------------
 // Heart A card
 // ------------------------------------------------------------
 module heart_2d(s=1) {
-    scale([s,s])
-    union() {
+    scale([s,s]) union() {
         translate([-3.2,1.8]) circle(r=3.5);
         translate([ 3.2,1.8]) circle(r=3.5);
         polygon(points=[[-6.5,1.5],[6.5,1.5],[0,-7.0]]);
@@ -227,23 +270,19 @@ module card_base() {
 
 module card_red_relief() {
     z = card_t - 0.05;
-    // thin red inner border
-    translate([0,0,z])
-        linear_extrude(height=relief_h)
-            difference() {
-                translate([2.4,2.4]) rounded_rect_2d(card_w-4.8,card_h-4.8,3.2);
-                translate([3.1,3.1]) rounded_rect_2d(card_w-6.2,card_h-6.2,2.6);
-            }
-    // top-left A
+    translate([0,0,z]) linear_extrude(height=relief_h)
+        difference() {
+            translate([2.4,2.4]) rounded_rect_2d(card_w-4.8,card_h-4.8,3.2);
+            translate([3.1,3.1]) rounded_rect_2d(card_w-6.2,card_h-6.2,2.6);
+        }
     translate([7.5,80,z]) linear_extrude(height=relief_h)
         text("A",size=8,font=font_latin,halign="center",valign="center");
     translate([7.5,72.5,z]) linear_extrude(height=relief_h) heart_2d(0.52);
-    // center heart
     translate([card_w/2,61,z]) linear_extrude(height=relief_h) heart_2d(1.35);
-    // bottom-right mirrored motif
     translate([52.5,10,z]) rotate([0,0,180]) linear_extrude(height=relief_h)
         text("A",size=7,font=font_latin,halign="center",valign="center");
-    translate([52.5,17,z]) rotate([0,0,180]) linear_extrude(height=relief_h) heart_2d(0.42);
+    translate([52.5,17,z]) rotate([0,0,180]) linear_extrude(height=relief_h)
+        heart_2d(0.42);
 }
 
 module qr_2d(target_size=30) {
@@ -251,7 +290,7 @@ module qr_2d(target_size=30) {
     union() {
         for (p = qr_modules)
             translate([p[0]*cell, (qr_grid-1-p[1])*cell])
-                square([cell*1.002, cell*1.002]);
+                square([cell*1.002,cell*1.002]);
     }
 }
 
@@ -259,9 +298,8 @@ module card_black_relief() {
     z = card_t - 0.05;
     if (show_qr && qr_ready)
         translate([card_w/2-qr_size/2,18,z])
-            linear_extrude(height=relief_h)
-                qr_2d(qr_size);
-    translate([card_w/2,11.0,z]) linear_extrude(height=relief_h)
+            linear_extrude(height=relief_h) qr_2d(qr_size);
+    translate([card_w/2,11,z]) linear_extrude(height=relief_h)
         text("扫一扫 · 看手气",size=3.3,font=font_main,halign="center",valign="center");
 }
 
@@ -271,13 +309,6 @@ module heart_card_all() {
         card_red_relief();
         card_black_relief();
     }
-}
-
-module heart_card_standing() {
-    // Local card XY -> world XZ; 8 degree backwards lean.
-    translate([rack_w/2-card_w/2,display_y-0.8,front_h-7.2])
-        rotate([90-display_lean,0,0])
-            heart_card_all();
 }
 
 module heart_card_standing_colored() {
@@ -290,60 +321,21 @@ module heart_card_standing_colored() {
 }
 
 // ------------------------------------------------------------
-// Preview playing cards (visualization only)
-// ------------------------------------------------------------
-module preview_card(rank="A", suit="♥", red=true) {
-    color("#f7f3ea")
-        linear_extrude(height=0.8)
-            rounded_rect_2d(56,88,3.5);
-    color(red ? "#b52b23" : "#222222") {
-        translate([6,78,0.81]) linear_extrude(height=0.12)
-            text(rank,size=7,font=font_latin,halign="center",valign="center");
-        translate([6,70,0.81]) linear_extrude(height=0.12)
-            text(suit,size=6,font=font_main,halign="center",valign="center");
-    }
-}
-
-module preview_row(y,z,offset=0) {
-    ranks=["2","A","K","Q","J","10","9","8","7","6","5","4","3"];
-    suits=["♠","♥","♣","♦","♠","♥","♣","♦","♥","♠","♦","♥","♣"];
-    for(i=[0:12]) {
-        x=8+i*14.4+offset;
-        // narrow overlap; each card remains full-size but most is hidden
-        translate([x,y,z]) rotate([90-card_lean,0,0])
-            scale([0.64,0.64,1]) preview_card(ranks[i],suits[i],(suits[i]=="♥" || suits[i]=="♦"));
-    }
-}
-
-module preview_cards() {
-    // Just enough vertical exposure to judge the silhouette.
-    preview_row(tier1_y+tier_d/2-1,tier1_h-6,0);
-    preview_row(tier2_y+tier_d/2-1,tier2_h-6,4);
-    preview_row(tier3_y+tier_d/2-1,tier3_h-6,0);
-}
-
-// ------------------------------------------------------------
-// Assembly
+// Assembly: only the central Heart A is shown. No demo cards.
 // ------------------------------------------------------------
 module assembly() {
     color("#eadcc3") rack_base_geometry();
     if (show_score_labels) {
-        color("#b52b23") group_label_A();
-        color("#245b8f") group_label_B();
-        color("#3c332a") {
-            score_ring_labels(score_left_x,score_z);
-            score_ring_labels(score_right_x,score_z);
-        }
+        color("#b52b23") score_scale(score_left_x,"A组");
+        color("#245b8f") score_scale(score_right_x,"B组");
     }
-    dial_standing_colored(score_left_x,score_z,0);
-    // Preview B group at level 7 (index 5).
-    dial_standing_colored(score_right_x,score_z,-5*360/13);
+    slider_standing_colored(score_x(score_left_x,3),score_track_z,"#b52b23");
+    slider_standing_colored(score_x(score_right_x,8),score_track_z,"#245b8f");
     heart_card_standing_colored();
-    if(show_preview_cards) preview_cards();
 }
 
 // ------------------------------------------------------------
-// Small tolerance test
+// Small tolerance coupons
 // ------------------------------------------------------------
 module slot_test() {
     difference() {
@@ -351,6 +343,15 @@ module slot_test() {
         translate([5,8,5]) cube([25,card_slot_w,12]);
         translate([40,8,5]) cube([25,display_slot_w,12]);
     }
+}
+
+module slider_test() {
+    test_len = 36;
+    difference() {
+        soft_prism(42,10,20,2.5,0.6);
+        score_track_cutter(3,test_len,10);
+    }
+    translate([51,5,0]) slider();
 }
 
 // ------------------------------------------------------------
@@ -362,6 +363,7 @@ else if (part=="heartA") heart_card_all();
 else if (part=="heartA_base") card_base();
 else if (part=="heartA_red") card_red_relief();
 else if (part=="heartA_black") card_black_relief();
-else if (part=="dialA") knurled_dial(0);
-else if (part=="dialB") knurled_dial(-5*360/13);
+else if (part=="sliderA") slider();
+else if (part=="sliderB") slider();
 else if (part=="slot_test") slot_test();
+else if (part=="slider_test") slider_test();
