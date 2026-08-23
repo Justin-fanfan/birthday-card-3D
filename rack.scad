@@ -49,14 +49,17 @@ score_right_x = rack_w - score_left_x - score_track_len;
 score_load_offset = 4.2;
 score_first_offset = 11;
 score_last_offset = 60;
-score_open_h = 3.4;
+// The neck is 3.0 mm wide. A 2.85 mm connecting channel gives a mild
+// interference fit, while the larger pockets at each score release it.
+score_open_h = 2.85;
+score_detent_d = 3.5;
 score_cavity_h = 6.6;
 score_load_d = 7.4;
 score_open_depth = 2.8;
 score_cavity_y = 1.8;
 score_cavity_depth = 4.2;
 score_label_size = 4.5;
-score_text_size = 2.7;
+score_text_size = 4.2;
 
 slider_flange_d = 6.0;
 slider_flange_t = 1.5;
@@ -167,10 +170,26 @@ module horizontal_pill(x0,len,y,z,d,depth) {
     }
 }
 
-module score_track_cutter(x0,len=score_track_len,z=score_track_z) {
+module score_track_cutter(
+    x0,
+    len=score_track_len,
+    z=score_track_z,
+    detent_first=score_first_offset,
+    detent_last=score_last_offset,
+    detent_count=13
+) {
     // Narrow visible opening plus a wider hidden cavity retains the slider.
     horizontal_pill(x0,len,-0.2,z,score_open_h,score_open_depth+0.2);
     horizontal_pill(x0,len,score_cavity_y,z,score_cavity_h,score_cavity_depth);
+
+    // Round pockets line up with the printed score ticks. The 3.0 mm slider
+    // neck clicks through the slightly narrower connecting channel and rests
+    // freely in each pocket. This is rotation-independent and FDM-friendly.
+    for (i=[0:detent_count-1])
+        let(detent_x = x0 + detent_first
+            + i*(detent_last-detent_first)/(detent_count-1))
+            y_cylinder(detent_x,-0.2,z,score_detent_d,
+                score_open_depth+0.2);
 
     // The rear flange enters through this port, then moves into the track.
     y_cylinder(x0+score_load_offset,-0.2,z,score_load_d,
@@ -355,7 +374,7 @@ module slider_test() {
     test_len = 36;
     difference() {
         soft_prism(42,10,20,2.5,0.6);
-        score_track_cutter(3,test_len,10);
+        score_track_cutter(3,test_len,10,7,31,7);
     }
     translate([51,5,0]) slider();
 }
