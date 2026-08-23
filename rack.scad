@@ -93,7 +93,9 @@ heartA_stand_d = 32;
 heartA_stand_h = 12;
 heartA_stand_r = 3;
 heartA_stand_bevel = 0.7;
-heartA_stand_slot_y = heartA_stand_d/2;
+// Move the slot toward the front so the rearward-leaning card is visually
+// centered over the footprint and leaves a safer rear margin at the top.
+heartA_stand_slot_y = 11.5;
 heartA_stand_slot_depth = 7;
 heartA_stand_insert = 7;
 
