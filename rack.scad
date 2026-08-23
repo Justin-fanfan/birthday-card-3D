@@ -4,7 +4,8 @@
  *
  * part = "assembly" | "rack" | "heartA" | "heartA_preview" | "heartA_base" |
  *        "heartA_red" | "heartA_black" | "sliderA" | "sliderB" |
- *        "slot_test" | "slider_test"
+ *        "slot_test" | "slider_test" | "heartA_stand" |
+ *        "heartA_stand_preview"
  */
 
 include <qr_data.scad>
@@ -85,6 +86,16 @@ qr_size = 34;
 qr_module_growth = 0.10;
 font_main = "Microsoft YaHei:style=Bold";
 font_latin = "Arial:style=Bold";
+
+// ---------- standalone Heart A display base ----------
+heartA_stand_w = 70;
+heartA_stand_d = 32;
+heartA_stand_h = 12;
+heartA_stand_r = 3;
+heartA_stand_bevel = 0.7;
+heartA_stand_slot_y = heartA_stand_d/2;
+heartA_stand_slot_depth = 7;
+heartA_stand_insert = 7;
 
 // ------------------------------------------------------------
 // Shared 2D/3D helpers
@@ -393,6 +404,53 @@ module slider_test() {
 }
 
 // ------------------------------------------------------------
+// Standalone display base for the printed Heart A card
+// ------------------------------------------------------------
+module heartA_stand_slot_cutter() {
+    translate([
+        heartA_stand_w/2,
+        heartA_stand_slot_y,
+        heartA_stand_h-heartA_stand_slot_depth/2+1
+    ]) rotate([-display_lean,0,0])
+        cube([
+            display_slot_len,
+            display_slot_w,
+            heartA_stand_slot_depth+4
+        ],center=true);
+}
+
+module heartA_stand() {
+    difference() {
+        soft_prism(
+            heartA_stand_w,
+            heartA_stand_d,
+            heartA_stand_h,
+            heartA_stand_r,
+            heartA_stand_bevel
+        );
+        heartA_stand_slot_cutter();
+    }
+}
+
+module heartA_stand_preview() {
+    max_card_t = card_t-0.05+relief_h;
+    slot_center_z = heartA_stand_h-heartA_stand_slot_depth/2+1;
+    card_bottom_z = heartA_stand_h-heartA_stand_insert;
+    slot_mid_y = heartA_stand_slot_y
+        + (card_bottom_z-slot_center_z)*tan(display_lean);
+    card_origin_y = slot_mid_y + max_card_t/2*cos(display_lean);
+    card_origin_z = card_bottom_z - max_card_t/2*sin(display_lean);
+
+    color("#eadcc3") heartA_stand();
+    translate([
+        heartA_stand_w/2-card_w/2,
+        card_origin_y,
+        card_origin_z
+    ]) rotate([90-display_lean,0,0])
+        heart_card_flat_colored();
+}
+
+// ------------------------------------------------------------
 // Output selector
 // ------------------------------------------------------------
 if (part=="assembly") assembly();
@@ -406,3 +464,5 @@ else if (part=="sliderA") slider();
 else if (part=="sliderB") slider();
 else if (part=="slot_test") slot_test();
 else if (part=="slider_test") slider_test();
+else if (part=="heartA_stand") heartA_stand();
+else if (part=="heartA_stand_preview") heartA_stand_preview();

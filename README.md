@@ -13,6 +13,7 @@
 - 连续阶梯主体：相邻层重叠连接，不留会掉牌的大缝
 - 红桃 A：`52 × 78 × 4.0 mm` 厚卡体，浮雕后最大厚度约 `4.85 mm`
 - 0.4 mm 喷嘴友好浮雕：`1.2 mm` 边框、`0.9 mm` 浮雕高度、加粗 A/♥ 与简化角标
+- 独立红桃 A 展示基座：`70 × 32 × 12 mm`，使用与主体相同的 `5.4 mm / 8°` 插槽
 - 左右各一条横向计级滑轨，带 13 个刻度和 `2 / A` 端点标记
 - 每个刻度对应一个 `3.5 mm` 圆形定位凹槽，滑块经过 `2.85 mm` 窄连接段时产生轻微卡位感
 - 两端 `2 / A` 使用 `4.2 mm` 粗体字，提升 0.4 mm 喷嘴下的清晰度
@@ -21,6 +22,10 @@
 - 滑轨采用“窄开口 + 隐藏宽腔 + 端部装入口”，滑块装入后不会从普通位置直接掉出
 
 ![compact beveled Heart A](docs/heartA-v2.png)
+
+独立红桃 A 展示基座：
+
+![standalone Heart A display base](docs/heartA-stand.png)
 
 滑槽定位测试件（圆形停靠位之间由较窄通道连接）：
 
@@ -58,6 +63,8 @@ python .\tools\prepare_qr.py
 | `sliderA` / `sliderB` | 两个相同的计级滑块 |
 | `slot_test` | 普通牌槽和红桃 A 插槽公差测试 |
 | `slider_test` | 短滑轨 + 一个滑块的装配公差测试 |
+| `heartA_stand` | 仅用于展示已打印红桃 A 的独立小基座 |
+| `heartA_stand_preview` | 独立基座插入红桃 A 的彩色预览，不用于 STL 打印 |
 
 也可以运行：
 
@@ -74,8 +81,9 @@ python .\tools\prepare_qr.py
 1. `slot_test`：用真实扑克牌和红桃 A 厚度检查槽宽
 2. `slider_test`：确认滑块能从圆形装入口压入、逐档卡位，并且手推力度合适
 3. `heartA`：平放、浮雕朝上；打印后检查二维码
-4. `rack`：底面直接贴热床
-5. `sliderA`、`sliderB`：背部圆盘朝下平放
+4. `heartA_stand`：如果需要先单独展示红桃 A，底面朝下打印
+5. `rack`：底面直接贴热床
+6. `sliderA`、`sliderB`：背部圆盘朝下平放
 
 滑块装配方法：
 

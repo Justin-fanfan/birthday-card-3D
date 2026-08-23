@@ -29,7 +29,7 @@ if (-not $openScad) {
 
 New-Item -ItemType Directory -Force -Path ".\out" | Out-Null
 
-$parts = @("slot_test", "slider_test", "rack", "heartA", "sliderA", "sliderB")
+$parts = @("slot_test", "slider_test", "heartA_stand", "rack", "heartA", "sliderA", "sliderB")
 foreach ($part in $parts) {
     Write-Host "Exporting $part..."
     & $openScad -D "part=`"$part`"" -o ".\out\$part.stl" ".\rack.scad"
