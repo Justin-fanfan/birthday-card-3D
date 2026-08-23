@@ -60,6 +60,8 @@ score_cavity_y = 1.8;
 score_cavity_depth = 4.2;
 score_label_size = 4.5;
 score_text_size = 4.2;
+score_engrave_depth = 0.55;
+score_preview_inlay_t = 0.08;
 
 slider_flange_d = 6.0;
 slider_flange_t = 1.5;
@@ -207,34 +209,48 @@ module rack_base_geometry() {
         card_slot_cutters();
         display_slot_cutter();
         score_track_cutters();
+        score_face_details();
     }
 }
 
 // ------------------------------------------------------------
-// Front-face score graphics
+// Front-face score graphics: engraved for robust FDM printing and easy paint.
 // ------------------------------------------------------------
-module face_text(str,x,z,size=4.5,depth=0.55,font=font_main) {
-    translate([x,0.25,z])
+module face_text(str,x,z,size=4.5,font=font_main,preview=false) {
+    start_y = preview ? score_engrave_depth+0.02
+        : score_engrave_depth+0.1;
+    extrusion = preview ? score_preview_inlay_t
+        : score_engrave_depth+0.3;
+    translate([x,start_y,z])
         rotate([90,0,0])
-            linear_extrude(height=depth)
+            linear_extrude(height=extrusion)
                 text(str,size=size,font=font,halign="center",valign="center");
 }
 
-module face_tick(x,z,h=1.7,w=0.45,depth=0.5) {
-    translate([x,0.25,z])
+module face_tick(x,z,h=1.7,w=0.55,preview=false) {
+    start_y = preview ? score_engrave_depth+0.02
+        : score_engrave_depth+0.1;
+    extrusion = preview ? score_preview_inlay_t
+        : score_engrave_depth+0.3;
+    translate([x,start_y,z])
         rotate([90,0,0])
-            linear_extrude(height=depth)
+            linear_extrude(height=extrusion)
                 square([w,h],center=true);
 }
 
 function score_x(x0,i) =
     x0 + score_first_offset + i*(score_last_offset-score_first_offset)/12;
 
-module score_scale(x0,label) {
-    face_text(label,x0+score_track_len/2,26.7,score_label_size);
-    for (i=[0:12]) face_tick(score_x(x0,i),9.6,(i==0 || i==12) ? 2.2 : 1.5);
-    face_text("2",score_x(x0,0),6.6,score_text_size);
-    face_text("A",score_x(x0,12),6.6,score_text_size,font=font_latin);
+module score_scale(x0,label,preview=false) {
+    face_text(label,x0+score_track_len/2,26.7,score_label_size,
+        preview=preview);
+    for (i=[0:12])
+        face_tick(score_x(x0,i),9.6,(i==0 || i==12) ? 2.2 : 1.5,
+            preview=preview);
+    face_text("2",score_x(x0,0),6.6,score_text_size,
+        preview=preview);
+    face_text("A",score_x(x0,12),6.6,score_text_size,font=font_latin,
+        preview=preview);
 }
 
 module score_face_details() {
@@ -245,10 +261,7 @@ module score_face_details() {
 }
 
 module rack() {
-    union() {
-        rack_base_geometry();
-        score_face_details();
-    }
+    rack_base_geometry();
 }
 
 // ------------------------------------------------------------
@@ -351,8 +364,8 @@ module heart_card_standing_colored() {
 module assembly() {
     color("#eadcc3") rack_base_geometry();
     if (show_score_labels) {
-        color("#b52b23") score_scale(score_left_x,"A组");
-        color("#245b8f") score_scale(score_right_x,"B组");
+        color("#b52b23") score_scale(score_left_x,"A组",preview=true);
+        color("#245b8f") score_scale(score_right_x,"B组",preview=true);
     }
     slider_standing_colored(score_x(score_left_x,3),score_track_z,"#b52b23");
     slider_standing_colored(score_x(score_right_x,8),score_track_z,"#245b8f");
