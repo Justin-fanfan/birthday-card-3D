@@ -36,7 +36,7 @@ card_slot_depth = 10;
 card_lean = 12;
 
 display_slot_len = 54;
-display_slot_w = 4.6;
+display_slot_w = 5.4;
 display_slot_depth = 11;
 display_lean = 8;
 display_y = 12;
@@ -74,11 +74,12 @@ card_h = 78;
 card_t = 4.0;
 card_r = 4.5;
 card_bevel = 0.65;
-relief_h = 0.7;
-border_w = 0.65;
-qr_size = 26;
+relief_h = 0.9;
+border_w = 1.2;
+qr_size = 34;
+qr_module_growth = 0.10;
 font_main = "Microsoft YaHei:style=Bold";
-font_latin = "Times New Roman:style=Bold";
+font_latin = "Arial:style=Bold";
 
 // ------------------------------------------------------------
 // Shared 2D/3D helpers
@@ -276,35 +277,34 @@ module card_red_relief() {
     z = card_t - 0.05;
     translate([0,0,z]) linear_extrude(height=relief_h)
         difference() {
-            translate([2.2,2.2]) rounded_rect_2d(card_w-4.4,card_h-4.4,3.0);
-            translate([2.85,2.85]) rounded_rect_2d(card_w-5.7,card_h-5.7,2.45);
+            translate([2.0,2.0]) rounded_rect_2d(card_w-4.0,card_h-4.0,3.1);
+            translate([2.0+border_w,2.0+border_w])
+                rounded_rect_2d(card_w-4.0-2*border_w,card_h-4.0-2*border_w,2.2);
         }
-    translate([6.6,card_h-8.5,z]) linear_extrude(height=relief_h)
-        text("A",size=7,font=font_latin,halign="center",valign="center");
-    translate([6.6,card_h-15,z]) linear_extrude(height=relief_h) heart_2d(0.44);
-    translate([card_w/2,card_h*0.67,z]) linear_extrude(height=relief_h) heart_2d(1.18);
-    translate([card_w-6.6,8.5,z]) rotate([0,0,180]) linear_extrude(height=relief_h)
-        text("A",size=6.2,font=font_latin,halign="center",valign="center");
-    translate([card_w-6.6,14.5,z]) rotate([0,0,180]) linear_extrude(height=relief_h)
-        heart_2d(0.36);
+    translate([7.0,card_h-8.5,z]) linear_extrude(height=relief_h)
+        text("A",size=8.5,font=font_latin,halign="center",valign="center");
+    translate([7.0,card_h-15.2,z]) linear_extrude(height=relief_h) heart_2d(0.52);
+    translate([card_w/2,57,z]) linear_extrude(height=relief_h) heart_2d(1.05);
 }
 
 module qr_2d(target_size=30) {
     cell = target_size / qr_grid;
     union() {
         for (p = qr_modules)
-            translate([p[0]*cell, (qr_grid-1-p[1])*cell])
-                square([cell*1.002,cell*1.002]);
+            translate([
+                p[0]*cell-qr_module_growth/2,
+                (qr_grid-1-p[1])*cell-qr_module_growth/2
+            ]) square([cell+qr_module_growth,cell+qr_module_growth]);
     }
 }
 
 module card_black_relief() {
     z = card_t - 0.05;
     if (show_qr && qr_ready)
-        translate([card_w/2-qr_size/2,15.2,z])
+        translate([card_w/2-qr_size/2,11.5,z])
             linear_extrude(height=relief_h) qr_2d(qr_size);
-    translate([card_w/2,9,z]) linear_extrude(height=relief_h)
-        text("扫一扫 · 看手气",size=2.8,font=font_main,halign="center",valign="center");
+    translate([card_w/2,6.4,z]) linear_extrude(height=relief_h)
+        text("扫码 · 看手气",size=3.6,font=font_main,halign="center",valign="center");
 }
 
 module heart_card_all() {
