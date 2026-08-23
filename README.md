@@ -11,10 +11,25 @@
 - 主体尺寸：`210 × 84 × 53 mm`
 - 三排真实扑克牌槽：`2.4 mm` 宽、`10 mm` 深、后仰 `12°`
 - 连续阶梯主体：相邻层重叠连接，不留会掉牌的大缝
-- 红桃 A：`60 × 90 × 3.2 mm`，带红色浮雕和真实二维码浮雕
+- 红桃 A：`52 × 78 × 4.0 mm` 厚卡体，浮雕后最大厚度约 `4.85 mm`
+- 0.4 mm 喷嘴友好浮雕：`1.2 mm` 边框、`0.9 mm` 浮雕高度、加粗 A/♥ 与简化角标
+- 独立红桃 A 展示基座：`70 × 32 × 12 mm`，使用与主体相同的 `5.4 mm / 8°` 插槽；槽中心距前沿 `11.5 mm`
 - 左右各一条横向计级滑轨，带 13 个刻度和 `2 / A` 端点标记
+- 每个刻度对应一个 `3.5 mm` 圆形定位凹槽，滑块经过 `2.85 mm` 窄连接段时产生轻微卡位感
+- 两端 `2 / A` 使用 `4.2 mm` 粗体字，提升 0.4 mm 喷嘴下的清晰度
+- `A组 / B组`、刻度线和 `2 / A` 全部内凹 `0.55 mm`，避免细小凸字被喷嘴刮坏，也便于打印后填色
 - 两个相同的独立滑块，平放打印，无需支撑
 - 滑轨采用“窄开口 + 隐藏宽腔 + 端部装入口”，滑块装入后不会从普通位置直接掉出
+
+![compact beveled Heart A](docs/heartA-v2.png)
+
+独立红桃 A 展示基座：
+
+![standalone Heart A display base](docs/heartA-stand.png)
+
+滑槽定位测试件（圆形停靠位之间由较窄通道连接）：
+
+![score slider detent test](docs/slider-detent-test.png)
 
 侧面连续轮廓：
 
@@ -28,7 +43,7 @@
 python .\tools\prepare_qr.py
 ```
 
-脚本会生成 `qr_data.scad`。当前二维码为 `43 × 43`，在 30 mm 宽度下单模块约 `0.698 mm`。
+脚本会生成 `qr_data.scad`。当前二维码为 `43 × 43`，放大到 `34 mm`；基础单模块约 `0.79 mm`，黑色模块再外扩 `0.10 mm`，更适合 0.4 mm 喷嘴成形。
 
 > 几何可打印不等于实体一定容易扫描。最终交付前仍需用实际耗材打印红桃 A，并用手机测试扫码。
 
@@ -41,12 +56,15 @@ python .\tools\prepare_qr.py
 | `assembly` | 完整彩色装配预览，仅展示红桃 A |
 | `rack` | 一体式牌架主体 |
 | `heartA` | 红桃 A 完整单色 STL |
+| `heartA_preview` | 红桃 A 彩色预览，不用于 STL 打印 |
 | `heartA_base` | 红桃 A 底板 |
 | `heartA_red` | 红色浮雕层 |
 | `heartA_black` | 黑色二维码/文字浮雕层 |
 | `sliderA` / `sliderB` | 两个相同的计级滑块 |
 | `slot_test` | 普通牌槽和红桃 A 插槽公差测试 |
 | `slider_test` | 短滑轨 + 一个滑块的装配公差测试 |
+| `heartA_stand` | 仅用于展示已打印红桃 A 的独立小基座 |
+| `heartA_stand_preview` | 独立基座插入红桃 A 的彩色预览，不用于 STL 打印 |
 
 也可以运行：
 
@@ -61,10 +79,11 @@ python .\tools\prepare_qr.py
 不要先打印 210 mm 主体。推荐顺序：
 
 1. `slot_test`：用真实扑克牌和红桃 A 厚度检查槽宽
-2. `slider_test`：确认滑块能从圆形装入口压入，并能在窄槽中顺畅移动
+2. `slider_test`：确认滑块能从圆形装入口压入、逐档卡位，并且手推力度合适
 3. `heartA`：平放、浮雕朝上；打印后检查二维码
-4. `rack`：底面直接贴热床
-5. `sliderA`、`sliderB`：背部圆盘朝下平放
+4. `heartA_stand`：如果需要先单独展示红桃 A，底面朝下打印
+5. `rack`：底面直接贴热床
+6. `sliderA`、`sliderB`：背部圆盘朝下平放
 
 滑块装配方法：
 
@@ -72,7 +91,7 @@ python .\tools\prepare_qr.py
 2. 轻压进入隐藏腔体
 3. 沿横槽推向第一个刻度；离开装入口后，挡边会被窄开口留在轨道内
 
-如果 `slider_test` 偏紧，优先把 `score_cavity_h` 和 `score_open_h` 各增加 `0.2 mm`，不要直接重打主体。
+如果 `slider_test` 偏紧，先把 `score_open_h` 从 `2.85 mm` 增加到 `2.95 mm`；如果滑块整体被隐藏腔夹住，再把 `score_cavity_h` 增加 `0.2 mm`。不要直接重打主体。
 
 ## 4. 推荐 FDM 参数
 
@@ -83,6 +102,8 @@ python .\tools\prepare_qr.py
 - 顶/底层：`5~6`
 - 填充：`15~20%`
 - 外墙：`40~50 mm/s`
+- 红桃 A 小轮廓/外墙：建议降到 `25~30 mm/s`
+- 墙生成器：优先使用 Arachne；没有该选项时开启“检测薄壁”
 - 主体支撑：通常不需要；隐藏滑轨顶部只有约 4 mm 短桥接
 - 主体摆放：底面朝下
 - 红桃 A：浮雕朝上
@@ -102,13 +123,15 @@ python .\tools\prepare_qr.py
 
 没有 AMS 时，可以单色打印，再用丙烯笔或油漆笔给浮雕顶面点色。
 
+计分区是凹刻结构，建议用细头油漆笔或稀释后的丙烯颜料填入凹槽，稍干后擦掉前面板表面的余漆。
+
 ## 6. 字体
 
 默认针对 Windows：
 
 ```scad
 font_main  = "Microsoft YaHei:style=Bold";
-font_latin = "Times New Roman:style=Bold";
+font_latin = "Arial:style=Bold";
 ```
 
 如果 OpenSCAD 出现缺字，可在 `Help -> Font List` 中换成系统已有字体。

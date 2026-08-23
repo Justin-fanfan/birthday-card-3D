@@ -2,9 +2,10 @@
  * Birthday GuanDan rack - continuous stepped edition
  * OpenSCAD 2021.01 compatible.
  *
- * part = "assembly" | "rack" | "heartA" | "heartA_base" |
+ * part = "assembly" | "rack" | "heartA" | "heartA_preview" | "heartA_base" |
  *        "heartA_red" | "heartA_black" | "sliderA" | "sliderB" |
- *        "slot_test" | "slider_test"
+ *        "slot_test" | "slider_test" | "heartA_stand" |
+ *        "heartA_stand_preview"
  */
 
 include <qr_data.scad>
@@ -35,9 +36,9 @@ card_slot_w = 2.4;
 card_slot_depth = 10;
 card_lean = 12;
 
-display_slot_len = 62;
-display_slot_w = 3.8;
-display_slot_depth = 10;
+display_slot_len = 54;
+display_slot_w = 5.4;
+display_slot_depth = 11;
 display_lean = 8;
 display_y = 12;
 
@@ -49,14 +50,19 @@ score_right_x = rack_w - score_left_x - score_track_len;
 score_load_offset = 4.2;
 score_first_offset = 11;
 score_last_offset = 60;
-score_open_h = 3.4;
+// The neck is 3.0 mm wide. A 2.85 mm connecting channel gives a mild
+// interference fit, while the larger pockets at each score release it.
+score_open_h = 2.85;
+score_detent_d = 3.5;
 score_cavity_h = 6.6;
 score_load_d = 7.4;
 score_open_depth = 2.8;
 score_cavity_y = 1.8;
 score_cavity_depth = 4.2;
 score_label_size = 4.5;
-score_text_size = 2.7;
+score_text_size = 4.2;
+score_engrave_depth = 0.55;
+score_preview_inlay_t = 0.08;
 
 slider_flange_d = 6.0;
 slider_flange_t = 1.5;
@@ -69,15 +75,29 @@ slider_assembly_y = score_cavity_y + score_cavity_depth - 1.1;
 levels = ["2","3","4","5","6","7","8","9","10","J","Q","K","A"];
 
 // ---------- heart A ----------
-card_w = 60;
-card_h = 90;
-card_t = 3.2;
-card_r = 5;
-relief_h = 0.65;
-border_w = 0.65;
-qr_size = 30;
+card_w = 52;
+card_h = 78;
+card_t = 4.0;
+card_r = 4.5;
+card_bevel = 0.65;
+relief_h = 0.9;
+border_w = 1.2;
+qr_size = 34;
+qr_module_growth = 0.10;
 font_main = "Microsoft YaHei:style=Bold";
-font_latin = "Times New Roman:style=Bold";
+font_latin = "Arial:style=Bold";
+
+// ---------- standalone Heart A display base ----------
+heartA_stand_w = 70;
+heartA_stand_d = 32;
+heartA_stand_h = 12;
+heartA_stand_r = 3;
+heartA_stand_bevel = 0.7;
+// Move the slot toward the front so the rearward-leaning card is visually
+// centered over the footprint and leaves a safer rear margin at the top.
+heartA_stand_slot_y = 11.5;
+heartA_stand_slot_depth = 7;
+heartA_stand_insert = 7;
 
 // ------------------------------------------------------------
 // Shared 2D/3D helpers
@@ -165,10 +185,26 @@ module horizontal_pill(x0,len,y,z,d,depth) {
     }
 }
 
-module score_track_cutter(x0,len=score_track_len,z=score_track_z) {
+module score_track_cutter(
+    x0,
+    len=score_track_len,
+    z=score_track_z,
+    detent_first=score_first_offset,
+    detent_last=score_last_offset,
+    detent_count=13
+) {
     // Narrow visible opening plus a wider hidden cavity retains the slider.
     horizontal_pill(x0,len,-0.2,z,score_open_h,score_open_depth+0.2);
     horizontal_pill(x0,len,score_cavity_y,z,score_cavity_h,score_cavity_depth);
+
+    // Round pockets line up with the printed score ticks. The 3.0 mm slider
+    // neck clicks through the slightly narrower connecting channel and rests
+    // freely in each pocket. This is rotation-independent and FDM-friendly.
+    for (i=[0:detent_count-1])
+        let(detent_x = x0 + detent_first
+            + i*(detent_last-detent_first)/(detent_count-1))
+            y_cylinder(detent_x,-0.2,z,score_detent_d,
+                score_open_depth+0.2);
 
     // The rear flange enters through this port, then moves into the track.
     y_cylinder(x0+score_load_offset,-0.2,z,score_load_d,
@@ -186,34 +222,48 @@ module rack_base_geometry() {
         card_slot_cutters();
         display_slot_cutter();
         score_track_cutters();
+        score_face_details();
     }
 }
 
 // ------------------------------------------------------------
-// Front-face score graphics
+// Front-face score graphics: engraved for robust FDM printing and easy paint.
 // ------------------------------------------------------------
-module face_text(str,x,z,size=4.5,depth=0.55,font=font_main) {
-    translate([x,0.25,z])
+module face_text(str,x,z,size=4.5,font=font_main,preview=false) {
+    start_y = preview ? score_engrave_depth+0.02
+        : score_engrave_depth+0.1;
+    extrusion = preview ? score_preview_inlay_t
+        : score_engrave_depth+0.3;
+    translate([x,start_y,z])
         rotate([90,0,0])
-            linear_extrude(height=depth)
+            linear_extrude(height=extrusion)
                 text(str,size=size,font=font,halign="center",valign="center");
 }
 
-module face_tick(x,z,h=1.7,w=0.45,depth=0.5) {
-    translate([x,0.25,z])
+module face_tick(x,z,h=1.7,w=0.55,preview=false) {
+    start_y = preview ? score_engrave_depth+0.02
+        : score_engrave_depth+0.1;
+    extrusion = preview ? score_preview_inlay_t
+        : score_engrave_depth+0.3;
+    translate([x,start_y,z])
         rotate([90,0,0])
-            linear_extrude(height=depth)
+            linear_extrude(height=extrusion)
                 square([w,h],center=true);
 }
 
 function score_x(x0,i) =
     x0 + score_first_offset + i*(score_last_offset-score_first_offset)/12;
 
-module score_scale(x0,label) {
-    face_text(label,x0+score_track_len/2,26.7,score_label_size);
-    for (i=[0:12]) face_tick(score_x(x0,i),9.6,(i==0 || i==12) ? 2.2 : 1.5);
-    face_text("2",score_x(x0,0),6.6,score_text_size);
-    face_text("A",score_x(x0,12),6.6,score_text_size,font=font_latin);
+module score_scale(x0,label,preview=false) {
+    face_text(label,x0+score_track_len/2,26.7,score_label_size,
+        preview=preview);
+    for (i=[0:12])
+        face_tick(score_x(x0,i),9.6,(i==0 || i==12) ? 2.2 : 1.5,
+            preview=preview);
+    face_text("2",score_x(x0,0),6.6,score_text_size,
+        preview=preview);
+    face_text("A",score_x(x0,12),6.6,score_text_size,font=font_latin,
+        preview=preview);
 }
 
 module score_face_details() {
@@ -224,10 +274,7 @@ module score_face_details() {
 }
 
 module rack() {
-    union() {
-        rack_base_geometry();
-        score_face_details();
-    }
+    rack_base_geometry();
 }
 
 // ------------------------------------------------------------
@@ -255,52 +302,54 @@ module slider_standing_colored(x,z,color_value) {
 // ------------------------------------------------------------
 // Heart A card
 // ------------------------------------------------------------
+function heart_curve_point(a) = [
+    0.42 * 16 * sin(a) * sin(a) * sin(a),
+    0.42 * (13*cos(a) - 5*cos(2*a) - 2*cos(3*a) - cos(4*a))
+];
+
 module heart_2d(s=1) {
-    scale([s,s]) union() {
-        translate([-3.2,1.8]) circle(r=3.5);
-        translate([ 3.2,1.8]) circle(r=3.5);
-        polygon(points=[[-6.5,1.5],[6.5,1.5],[0,-7.0]]);
-    }
+    // One continuous curve avoids the visible circle/triangle seam.
+    scale([s,s])
+        polygon(points=[for (i=[0:95]) heart_curve_point(i*360/96)]);
 }
 
 module card_base() {
-    linear_extrude(height=card_t)
-        rounded_rect_2d(card_w,card_h,card_r);
+    // A thicker body with a light all-round bevel gives the card more weight.
+    soft_prism(card_w,card_h,card_t,card_r,card_bevel);
 }
 
 module card_red_relief() {
     z = card_t - 0.05;
     translate([0,0,z]) linear_extrude(height=relief_h)
         difference() {
-            translate([2.4,2.4]) rounded_rect_2d(card_w-4.8,card_h-4.8,3.2);
-            translate([3.1,3.1]) rounded_rect_2d(card_w-6.2,card_h-6.2,2.6);
+            translate([2.0,2.0]) rounded_rect_2d(card_w-4.0,card_h-4.0,3.1);
+            translate([2.0+border_w,2.0+border_w])
+                rounded_rect_2d(card_w-4.0-2*border_w,card_h-4.0-2*border_w,2.2);
         }
-    translate([7.5,80,z]) linear_extrude(height=relief_h)
-        text("A",size=8,font=font_latin,halign="center",valign="center");
-    translate([7.5,72.5,z]) linear_extrude(height=relief_h) heart_2d(0.52);
-    translate([card_w/2,61,z]) linear_extrude(height=relief_h) heart_2d(1.35);
-    translate([52.5,10,z]) rotate([0,0,180]) linear_extrude(height=relief_h)
-        text("A",size=7,font=font_latin,halign="center",valign="center");
-    translate([52.5,17,z]) rotate([0,0,180]) linear_extrude(height=relief_h)
-        heart_2d(0.42);
+    translate([7.0,card_h-8.5,z]) linear_extrude(height=relief_h)
+        text("A",size=8.5,font=font_latin,halign="center",valign="center");
+    translate([7.0,card_h-15.2,z]) linear_extrude(height=relief_h) heart_2d(0.52);
+    translate([card_w/2,57,z]) linear_extrude(height=relief_h) heart_2d(1.05);
 }
 
 module qr_2d(target_size=30) {
     cell = target_size / qr_grid;
     union() {
         for (p = qr_modules)
-            translate([p[0]*cell, (qr_grid-1-p[1])*cell])
-                square([cell*1.002,cell*1.002]);
+            translate([
+                p[0]*cell-qr_module_growth/2,
+                (qr_grid-1-p[1])*cell-qr_module_growth/2
+            ]) square([cell+qr_module_growth,cell+qr_module_growth]);
     }
 }
 
 module card_black_relief() {
     z = card_t - 0.05;
     if (show_qr && qr_ready)
-        translate([card_w/2-qr_size/2,18,z])
+        translate([card_w/2-qr_size/2,11.5,z])
             linear_extrude(height=relief_h) qr_2d(qr_size);
-    translate([card_w/2,11,z]) linear_extrude(height=relief_h)
-        text("扫一扫 · 看手气",size=3.3,font=font_main,halign="center",valign="center");
+    translate([card_w/2,6.4,z]) linear_extrude(height=relief_h)
+        text("扫码 · 看手气",size=3.6,font=font_main,halign="center",valign="center");
 }
 
 module heart_card_all() {
@@ -311,13 +360,15 @@ module heart_card_all() {
     }
 }
 
+module heart_card_flat_colored() {
+    color("#f4ead7") card_base();
+    color("#b52b23") card_red_relief();
+    color("#181512") card_black_relief();
+}
+
 module heart_card_standing_colored() {
     translate([rack_w/2-card_w/2,display_y-0.8,front_h-7.2])
-        rotate([90-display_lean,0,0]) {
-            color("#f4ead7") card_base();
-            color("#b52b23") card_red_relief();
-            color("#181512") card_black_relief();
-        }
+        rotate([90-display_lean,0,0]) heart_card_flat_colored();
 }
 
 // ------------------------------------------------------------
@@ -326,8 +377,8 @@ module heart_card_standing_colored() {
 module assembly() {
     color("#eadcc3") rack_base_geometry();
     if (show_score_labels) {
-        color("#b52b23") score_scale(score_left_x,"A组");
-        color("#245b8f") score_scale(score_right_x,"B组");
+        color("#b52b23") score_scale(score_left_x,"A组",preview=true);
+        color("#245b8f") score_scale(score_right_x,"B组",preview=true);
     }
     slider_standing_colored(score_x(score_left_x,3),score_track_z,"#b52b23");
     slider_standing_colored(score_x(score_right_x,8),score_track_z,"#245b8f");
@@ -349,9 +400,56 @@ module slider_test() {
     test_len = 36;
     difference() {
         soft_prism(42,10,20,2.5,0.6);
-        score_track_cutter(3,test_len,10);
+        score_track_cutter(3,test_len,10,7,31,7);
     }
     translate([51,5,0]) slider();
+}
+
+// ------------------------------------------------------------
+// Standalone display base for the printed Heart A card
+// ------------------------------------------------------------
+module heartA_stand_slot_cutter() {
+    translate([
+        heartA_stand_w/2,
+        heartA_stand_slot_y,
+        heartA_stand_h-heartA_stand_slot_depth/2+1
+    ]) rotate([-display_lean,0,0])
+        cube([
+            display_slot_len,
+            display_slot_w,
+            heartA_stand_slot_depth+4
+        ],center=true);
+}
+
+module heartA_stand() {
+    difference() {
+        soft_prism(
+            heartA_stand_w,
+            heartA_stand_d,
+            heartA_stand_h,
+            heartA_stand_r,
+            heartA_stand_bevel
+        );
+        heartA_stand_slot_cutter();
+    }
+}
+
+module heartA_stand_preview() {
+    max_card_t = card_t-0.05+relief_h;
+    slot_center_z = heartA_stand_h-heartA_stand_slot_depth/2+1;
+    card_bottom_z = heartA_stand_h-heartA_stand_insert;
+    slot_mid_y = heartA_stand_slot_y
+        + (card_bottom_z-slot_center_z)*tan(display_lean);
+    card_origin_y = slot_mid_y + max_card_t/2*cos(display_lean);
+    card_origin_z = card_bottom_z - max_card_t/2*sin(display_lean);
+
+    color("#eadcc3") heartA_stand();
+    translate([
+        heartA_stand_w/2-card_w/2,
+        card_origin_y,
+        card_origin_z
+    ]) rotate([90-display_lean,0,0])
+        heart_card_flat_colored();
 }
 
 // ------------------------------------------------------------
@@ -360,6 +458,7 @@ module slider_test() {
 if (part=="assembly") assembly();
 else if (part=="rack") rack();
 else if (part=="heartA") heart_card_all();
+else if (part=="heartA_preview") heart_card_flat_colored();
 else if (part=="heartA_base") card_base();
 else if (part=="heartA_red") card_red_relief();
 else if (part=="heartA_black") card_black_relief();
@@ -367,3 +466,5 @@ else if (part=="sliderA") slider();
 else if (part=="sliderB") slider();
 else if (part=="slot_test") slot_test();
 else if (part=="slider_test") slider_test();
+else if (part=="heartA_stand") heartA_stand();
+else if (part=="heartA_stand_preview") heartA_stand_preview();
